@@ -1,27 +1,34 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import createError from "http-errors";
+import mongoose from "mongoose";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+// importar rutas
 import indexRoutes from "./routes/index.js";
-import productsRoutes from "./routes/products.js";
-import categoriesRoutes from "./routes/categories.js";
-import ordersRoutes from "./routes/orders.js";
+import actividadesRoutes from "./routes/actividades.js";
+import predicasRoutes from "./routes/predicas.js";
+import contactRoutes from "./routes/contact.js";
+import categoriesRoutes from "./routes/categories.js"; 
 
-/* Clear the console  */
-console.log("\x1Bc");
-
+// inicializar app
 const app = express();
-
-// DB Connection
-import { connectDb } from "./db.js";
-connectDb();
-
-/* Settings */
 app.set("port", process.env.PORT || 4000);
 
-/* Middlewares */
+// middlewares
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// define __dirname para ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// servir imágenes
+app.use("/img", express.static(join(__dirname, "public", "img")));
+
+// configuración de cors
 app.use(
   cors({
     origin:
@@ -36,24 +43,40 @@ app.use(
   })
 );
 
-/* Routes */
+// rutas principales
 app.use("/", indexRoutes);
-app.use("/products", productsRoutes);
+app.use("/predicas", predicasRoutes);
+app.use("/actividades", actividadesRoutes);
 app.use("/categories", categoriesRoutes);
-app.use("/orders", ordersRoutes);
+app.use("/contact", contactRoutes);
 
-/* Error handler  */
-// catch 404 and forward to error handler
-app.use(function (req, res, next) {
-  next(createError(404));
+// manejo de errores 404
+app.use((req, res, next) => {
+  next(createError(404, "ruta no encontrada"));
 });
 
-app.use(function (err, req, res, next) {
-  res.status(err.status || 500);
-  res.send({ message: err.message || "error" });
+// manejo general de errores
+app.use((err, req, res, next) => {
+  res.status(err.status || 500).json({
+    message: err.message || "error en el servidor",
+  });
 });
 
-/* Starting server */
-app.listen(app.get("port"), () => {
-  console.log(`Server on port ${app.get("port")}`);
-});
+// conecta a la base de datos y levanta servidor
+const connectDb = async () => {
+  try {
+    // construimos la URL completa usando las variables separadas y agregando appName
+    const mongoUri = `${process.env.DB_PROTOCOL}${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=app`;
+
+    await mongoose.connect(mongoUri);
+    console.log("Database connected");
+
+    app.listen(app.get("port"), () => {
+      console.log(`Servidor corriendo en el puerto ${app.get("port")}`);
+    });
+  } catch (err) {
+    console.error("Database not connected", err);
+  }
+};
+
+connectDb();

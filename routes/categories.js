@@ -1,53 +1,35 @@
 import express from "express";
-import Category from "../models/category.js";
+import Category from "../models/Category.js";
 
 const router = express.Router();
 
-// Crear categoría (name + slug)
+//obtener todas las categorias
+router.get("/", async (req, res) => {
+  try {
+    const categories = await Category.find();
+    res.json(categories);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Error al obtener las categorías", error });
+  }
+});
+
+//crear nueva categoria
 router.post("/", async (req, res) => {
   try {
     const { name, slug } = req.body;
-    const category = new Category({ name, slug });
-    await category.save();
-    return res.status(201).send({ message: "Categoría creada", category });
+
+    if (!name || !slug) {
+      return res.status(400).json({ message: "Faltan campos obligatorios" });
+    }
+
+    const nuevaCategory = new Category({ name, slug });
+    await nuevaCategory.save();
+
+    res.status(201).json({ message: "Categoría creada", category: nuevaCategory });
   } catch (error) {
-    return res.status(500).send({ message: "Hubo un error", error });
-  }
-});
-
-// Listar categorías (simple)
-router.get("/", async (_req, res) => {
-  try {
-    const categories = await Category.find().select("_id name slug");
-    return res.status(200).send({ message: "Todas las categorías", categories });
-  } catch (error) {
-    return res.status(500).send({ message: "Hubo un error", error });
-  }
-});
-
-// Productos por categoría (slug o id)  -> ya lo teníamos
-router.get("/:key/products", async (req, res) => {
-  const { key } = req.params;
-  try {
-    const isId = key.match(/^[0-9a-fA-F]{24}$/);
-    const category = isId
-      ? await Category.findById(key)
-      : await Category.findOne({ slug: key });
-
-    if (!category) return res.status(404).send({ message: "Categoría no encontrada" });
-
-    const products = await (await import("../models/products.js")).default
-      .find({ categories: category._id })
-      .select("_id name categories")
-      .populate("categories", "name slug");
-
-    return res.status(200).send({
-      message: "Productos por categoría",
-      category: { _id: category._id, name: category.name, slug: category.slug },
-      products
-    });
-  } catch (error) {
-    return res.status(500).send({ message: "Hubo un error", error });
+    console.log(error);
+    res.status(500).json({ message: "Error al crear la categoría", error });
   }
 });
 
