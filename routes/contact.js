@@ -1,41 +1,31 @@
-import express from "express";
-import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
 
-const router = express.Router();
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-router.post("/", async (req, res) => {
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ message: "Método no permitido" });
+  }
+
   try {
-    const { name, email, message } = req.body;
+    const { nombre, email, telefono, necesidad } = req.body;
 
-    if (!name || !email || !message) {
+    if (!nombre || !email || !telefono || !necesidad) {
       return res.status(400).json({ message: "Todos los campos son obligatorios" });
     }
 
-    //configuracion del transporter
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    // contenido del mail
-    const mailOptions = {
-      from: process.env.EMAIL_USER, // de quien llega
-      to: "iglesiacasadelalfareromunro@gmail.com",   // mi mail
-      subject: `Nuevo mensaje de ${name}`,
-      text: `Nombre: ${name}\nEmail: ${email}\nMensaje: ${message}`,
+    const msg = {
+      to: "iglesiacasadelalfareromunro@gmail.com", // tu correo
+      from: "LaCasaDelAlfareroMunro <iglesiacasadelalfareromunro@gmail.com>", // nombre y correo del remitente
+      subject: `Nuevo mensaje de ${nombre}`,
+      text: `Nombre: ${nombre}\nEmail: ${email}\nTeléfono: ${telefono}\nNecesidad: ${necesidad}`,
     };
 
-    // enviar mail
-    await transporter.sendMail(mailOptions);
+    await sgMail.send(msg);
 
-    res.status(200).json({ message: "Mensaje enviado correctamente" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error al enviar el mensaje", error });
+    return res.status(200).json({ message: "Mensaje enviado correctamente" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Error al enviar el mensaje", error: err });
   }
-});
-
-export default router;
+}
