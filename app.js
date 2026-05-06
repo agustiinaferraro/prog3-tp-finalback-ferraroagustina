@@ -46,19 +46,18 @@ app.get("/img/:filename", (req, res) => {
 });
 
 // configuración de cors
-app.use(
-  cors({
-    origin:
-      process.env.NODE_ENV === "local"
-        ? [`http://${process.env.FRONT_URL}`]
-        : [
-            `https://${process.env.FRONT_URL}`,
-            `https://www.${process.env.FRONT_URL}`,
-          ],
-    credentials: true,
-    exposedHeaders: "Authorization",
-  })
-);
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
+  credentials: true,
+  exposedHeaders: "Authorization",
+};
+app.use(cors(corsOptions));
 
 // rutas principales
 app.use("/", indexRoutes);
