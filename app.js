@@ -5,6 +5,7 @@ import createError from "http-errors";
 import mongoose from "mongoose";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import fs from "fs";
 
 // importar rutas
 import indexRoutes from "./routes/index.js";
@@ -26,7 +27,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // servir imágenes
-app.use("/img", express.static(join(__dirname, "public", "img")));
+app.get("/img/:filename", (req, res) => {
+  const filePath = join(__dirname, "public", "img", req.params.filename);
+  if (fs.existsSync(filePath)) {
+    const ext = filePath.split('.').pop();
+    const contentTypes = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'webp': 'image/webp'
+    };
+    res.setHeader('Content-Type', contentTypes[ext] || 'application/octet-stream');
+    fs.createReadStream(filePath).pipe(res);
+  } else {
+    res.status(404).json({ message: "imagen no encontrada" });
+  }
+});
 
 // configuración de cors
 app.use(
