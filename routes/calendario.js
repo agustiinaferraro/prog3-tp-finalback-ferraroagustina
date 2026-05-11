@@ -1,39 +1,52 @@
 import { Router } from "express";
-import axios from "axios";
+import multer from "multer";
+import CalendarioImagen from "../models/CalendarioImagen.js";
 
 const router = Router();
-
-const FOLDER_ID = process.env.CALENDARIO_FOLDER_ID || "1aNBdgeJWUk-JDmTto3Y_nukO9yIji4Kt";
-const API_KEY = process.env.GOOGLE_API_KEY;
+const upload = multer({ storage: multer.memoryStorage() });
 
 router.get("/", async (req, res) => {
-  if (!API_KEY) {
-    return res.status(500).json({ message: "GOOGLE_API_KEY no configurada" });
-  }
-
   try {
-    const url = "https://www.googleapis.com/drive/v3/files";
-    const params = {
-      q: `'${FOLDER_ID}' in parents and mimeType contains 'image/'`,
-      orderBy: "createdTime desc",
-      pageSize: 1,
-      fields: "files(id, name, mimeType)",
-      key: API_KEY,
-    };
+    const imagen = await CalendarioImagen.findOne().sort({ updatedAt: -1 });
+    if (!imagen) {
+      return res.status(404).json({ message: "No hay imagen de calendario disponible" });
+    }
+    res.setHeader("Content-Type", imagen.contentType);
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.send(imagen.data);
+  } catch (error) {
+    console.error("Error al obtener imagen:", error);
+    res.status(500).json({ message: "Error al obtener la imagen del calendario" });
+  }
+});
 
-    const response = await axios.get(url, { params });
-    const files = response.data.files;
+router.post("/", upload.single("image"), async (req, res) => {
+  try {
+    const { password } = req.body;
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
-    if (!files || files.length === 0) {
-      return res.status(404).json({ message: "No hay imágenes en la carpeta" });
+    if (!ADMIN_PASSWORD || password !== ADMIN_PASSWORD) {
+      return res.status(401).json({ message: "Contraseña incorrecta" });
     }
 
-    const fileId = files[0].id;
-    const imageUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
-    res.redirect(imageUrl);
+    if (!req.file) {
+      return res.status(400).json({ message: "No se envió ninguna imagen" });
+    }
+
+    await CalendarioImagen.findOneAndUpdate(
+      {},
+      {
+        data: req.file.buffer,
+        contentType: req.file.mimetype,
+        updatedAt: new Date()
+      },
+      { upsert: true }
+    );
+
+    res.json({ message: "Imagen de calendario actualizada correctamente" });
   } catch (error) {
-    console.error("Error al obtener imagen de Drive:", error?.response?.data || error.message);
-    res.status(500).json({ message: "Error al obtener la imagen del calendario" });
+    console.error("Error al subir imagen:", error);
+    res.status(500).json({ message: "Error al subir la imagen" });
   }
 });
 
