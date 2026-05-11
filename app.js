@@ -12,7 +12,8 @@ import indexRoutes from "./routes/index.js";
 import actividadesRoutes from "./routes/actividades.js";
 import predicasRoutes from "./routes/predicas.js";
 import contactRoutes from "./routes/contact.js";
-import categoriesRoutes from "./routes/categories.js"; 
+import categoriesRoutes from "./routes/categories.js";
+import calendarioRoutes from "./routes/calendario.js"; 
 
 // inicializar app
 const app = express();
@@ -65,6 +66,7 @@ app.use("/predicas", predicasRoutes);
 app.use("/actividades", actividadesRoutes);
 app.use("/categories", categoriesRoutes);
 app.use("/contact", contactRoutes);
+app.use("/calendario-image", calendarioRoutes);
 
 // manejo de errores 404
 app.use((req, res, next) => {
