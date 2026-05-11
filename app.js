@@ -77,6 +77,8 @@ app.use((req, res, next) => {
 
 // manejo general de errores
 app.use((err, req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
   res.status(err.status || 500).json({
     message: err.message || "error en el servidor",
   });
