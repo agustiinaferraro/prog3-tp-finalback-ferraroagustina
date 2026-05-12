@@ -69,6 +69,7 @@ app.use("/categories", categoriesRoutes);
 app.use("/contact", contactRoutes);
 app.use("/calendario-image", calendarioRoutes);
 app.use("/calendario-upload", calendarioRoutes);
+app.use("/calendario-delete", calendarioRoutes);
 
 // manejo de errores 404
 app.use((req, res, next) => {

@@ -50,4 +50,21 @@ router.post("/", upload.single("image"), async (req, res) => {
   }
 });
 
+router.delete("/", async (req, res) => {
+  try {
+    const password = req.query.password || req.headers["x-admin-password"];
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+    if (!ADMIN_PASSWORD || password !== ADMIN_PASSWORD) {
+      return res.status(401).json({ message: "Contraseña incorrecta" });
+    }
+
+    await CalendarioImagen.deleteMany({});
+    res.json({ message: "Imagen eliminada correctamente" });
+  } catch (error) {
+    console.error("Error al eliminar imagen:", error);
+    res.status(500).json({ message: "Error al eliminar la imagen" });
+  }
+});
+
 export default router;
