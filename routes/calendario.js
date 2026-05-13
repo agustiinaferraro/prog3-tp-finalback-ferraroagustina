@@ -12,7 +12,9 @@ router.get("/", async (req, res) => {
       return res.status(404).json({ message: "No hay imagen de calendario disponible" });
     }
     res.setHeader("Content-Type", imagen.contentType);
-    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.send(imagen.data);
   } catch (error) {
     console.error("Error al obtener imagen:", error);
