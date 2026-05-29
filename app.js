@@ -82,18 +82,15 @@ app.use((err, req, res, next) => {
 // conecta a la base de datos y levanta servidor
 const connectDb = async () => {
   try {
-    // construimos la URL completa usando las variables separadas y agregando appName
     const mongoUri = `${process.env.DB_PROTOCOL}${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=app`;
-
     await mongoose.connect(mongoUri);
     console.log("Database connected");
-
-    app.listen(app.get("port"), () => {
-      console.log(`Servidor corriendo en el puerto ${app.get("port")}`);
-    });
   } catch (err) {
     console.error("Database not connected", err);
   }
 };
-
 connectDb();
+
+app.listen(app.get("port"), () => {
+  console.log(`Servidor corriendo en el puerto ${app.get("port")}`);
+});
