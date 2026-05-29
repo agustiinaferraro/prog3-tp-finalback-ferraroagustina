@@ -48,13 +48,7 @@ app.get("/img/:filename", (req, res) => {
 
 // CORS - acepta cualquier origen vercel.app, localhost o el FRONT_URL exacto
 const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
-      callback(null, true);
-    } else {
-      callback(null, false);
-    }
-  },
+  origin: true,
   credentials: true,
   exposedHeaders: "Authorization",
 };
