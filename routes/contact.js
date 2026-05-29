@@ -1,15 +1,9 @@
 import { Router } from "express";
-import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const router = Router();
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
 
 router.post("/", async (req, res) => {
   const { nombre, email, telefono, necesidad } = req.body;
@@ -18,9 +12,9 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ message: "Todos los campos son obligatorios" });
   }
 
-  transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  sgMail.send({
     to: process.env.EMAIL_USER,
+    from: process.env.EMAIL_USER,
     subject: `Nuevo mensaje de ${nombre}`,
     html: `
       <h2>Nuevo mensaje de contacto</h2>
