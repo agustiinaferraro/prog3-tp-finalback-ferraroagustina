@@ -1,7 +1,5 @@
 import { Router } from "express";
-import sgMail from "@sendgrid/mail";
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+import Contact from "../models/Contact.js";
 
 const router = Router();
 
@@ -13,17 +11,11 @@ router.post("/", async (req, res) => {
   }
 
   try {
-    await sgMail.send({
-      to: process.env.EMAIL_USER,
-      from: process.env.EMAIL_USER,
-      subject: `Nuevo mensaje de ${nombre}`,
-      text: `Nombre: ${nombre}\nEmail: ${email}\nTeléfono: ${telefono}\nNecesidad: ${necesidad}`,
-    });
-
+    await Contact.create({ nombre, email, telefono, necesidad });
     res.status(200).json({ message: "Mensaje enviado correctamente" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error al enviar el mensaje", error });
+    res.status(500).json({ message: "Error al enviar el mensaje" });
   }
 });
 
