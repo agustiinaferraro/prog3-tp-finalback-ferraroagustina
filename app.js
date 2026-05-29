@@ -12,7 +12,8 @@ import indexRoutes from "./routes/index.js";
 import actividadesRoutes from "./routes/actividades.js";
 import predicasRoutes from "./routes/predicas.js";
 import contactRoutes from "./routes/contact.js";
-import categoriesRoutes from "./routes/categories.js"; 
+import categoriesRoutes from "./routes/categories.js";
+import calendarioRoutes from "./routes/calendario.js"; 
 
 // inicializar app
 const app = express();
@@ -45,7 +46,7 @@ app.get("/img/:filename", (req, res) => {
   }
 });
 
-// configuración de cors
+// CORS - acepta cualquier origen vercel.app, localhost o el FRONT_URL exacto
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
@@ -58,6 +59,7 @@ const corsOptions = {
   exposedHeaders: "Authorization",
 };
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 // rutas principales
 app.use("/", indexRoutes);
@@ -65,6 +67,9 @@ app.use("/predicas", predicasRoutes);
 app.use("/actividades", actividadesRoutes);
 app.use("/categories", categoriesRoutes);
 app.use("/contact", contactRoutes);
+app.use("/calendario-image", calendarioRoutes);
+app.use("/calendario-upload", calendarioRoutes);
+app.use("/calendario-delete", calendarioRoutes);
 
 // manejo de errores 404
 app.use((req, res, next) => {
@@ -73,6 +78,8 @@ app.use((req, res, next) => {
 
 // manejo general de errores
 app.use((err, req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
   res.status(err.status || 500).json({
     message: err.message || "error en el servidor",
   });
