@@ -3,7 +3,6 @@ import express from "express";
 import cors from "cors";
 import createError from "http-errors";
 import mongoose from "mongoose";
-import dns from "dns";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import fs from "fs";
@@ -80,30 +79,19 @@ app.use((err, req, res, next) => {
   });
 });
 
-// conecta a la base de datos con cache para serverless
+// cache de conexion para serverless
 let cached = global.mongoose;
 if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
-mongoose.set("bufferTimeoutMS", 30000);
-
 const connectDb = async () => {
   if (cached.conn) return cached.conn;
   if (!cached.promise) {
-    const directNodes = [
-      "ac-culjato-shard-00-00.u3h8tkc.mongodb.net:27017",
-      "ac-culjato-shard-00-01.u3h8tkc.mongodb.net:27017",
-      "ac-culjato-shard-00-02.u3h8tkc.mongodb.net:27017",
-    ];
-    const uri = `mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@${directNodes.join(",")}/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=app`;
-    console.log("Connecting to MongoDB (direct)...");
-    cached.promise = mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 20000,
-      connectTimeoutMS: 20000,
-    }).then((m) => {
-      cached.conn = m;
+    const mongoUri = `${process.env.DB_PROTOCOL}${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=app`;
+    cached.promise = mongoose.connect(mongoUri).then((m) => {
       console.log("Database connected");
+      cached.conn = m;
       return m;
     }).catch((err) => {
       console.error("Database not connected:", err.message);
@@ -113,12 +101,6 @@ const connectDb = async () => {
   }
   return cached.promise;
 };
-
-// inicia conexión al cargar el módulo (antes de cualquier request)
 connectDb().catch(() => {});
-
-app.listen(app.get("port"), () => {
-  console.log(`Servidor corriendo en el puerto ${app.get("port")}`);
-});
 
 export default app;
