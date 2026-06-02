@@ -79,9 +79,29 @@ app.use((err, req, res, next) => {
   });
 });
 
-// conecta a la base de datos
+// conecta a la base de datos con cache serverless y retry
 mongoose.set("bufferTimeoutMS", 30000);
 const mongoUri = `${process.env.DB_PROTOCOL}${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=app`;
-mongoose.connect(mongoUri).then(() => console.log("Database connected")).catch((err) => console.error("Database not connected:", err.message));
+
+let cached = global.mongooseConn;
+if (!cached) {
+  cached = global.mongooseConn = { conn: null };
+}
+
+const connectDb = (retries = 5) => {
+  if (cached.conn) return Promise.resolve(cached.conn);
+  return mongoose.connect(mongoUri).then((m) => {
+    console.log("Database connected");
+    cached.conn = m;
+    return m;
+  }).catch((err) => {
+    console.error("Database not connected:", err.message);
+    if (retries > 0) {
+      return new Promise((resolve) => setTimeout(resolve, 3000)).then(() => connectDb(retries - 1));
+    }
+    throw err;
+  });
+};
+connectDb().catch(() => {});
 
 export default app;
