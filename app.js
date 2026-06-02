@@ -89,29 +89,25 @@ const connectDb = async () => {
   if (cached.conn) return cached.conn;
   if (!cached.promise) {
     const mongoUri = `${process.env.DB_PROTOCOL}${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=app`;
-    cached.promise = mongoose.connect(mongoUri).then((m) => {
+    console.log("Connecting to MongoDB...");
+    cached.promise = mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
+    }).then((m) => {
+      cached.conn = m;
       console.log("Database connected");
       return m;
     }).catch((err) => {
-      console.error("Database not connected", err);
+      console.error("Database not connected:", err.message);
       cached.promise = null;
       throw err;
     });
   }
-  cached.conn = await cached.promise;
-  return cached.conn;
+  return cached.promise;
 };
 
-// middleware que asegura DB connection antes de rutas que la necesiten
-app.use(async (req, res, next) => {
-  if (req.path.startsWith("/img/") || req.path === "/") return next();
-  try {
-    await connectDb();
-    next();
-  } catch {
-    res.status(500).json({ message: "Error de conexión a la base de datos" });
-  }
-});
+// inicia conexión al cargar el módulo (antes de cualquier request)
+connectDb().catch(() => {});
 
 app.listen(app.get("port"), () => {
   console.log(`Servidor corriendo en el puerto ${app.get("port")}`);
