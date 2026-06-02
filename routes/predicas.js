@@ -10,7 +10,7 @@ router.get("/", async (req, res) => {
     const predicas = await Predica.find();
     res.json(predicas);
   } catch (err) {
-    res.status(500).json({ error: "Error al obtener prédicas" });
+    res.status(500).json({ error: "Error al obtener prédicas", details: err.message });
   }
 });
 

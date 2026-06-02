@@ -10,7 +10,7 @@ router.get("/", async (req, res) => {
     const actividades = await Actividad.find().populate("category", "name slug");
     res.json(actividades);
   } catch (error) {
-    res.status(500).json({ message: "Error al obtener las actividades", error });
+    res.status(500).json({ message: "Error al obtener las actividades", details: error.message });
   }
 });
 

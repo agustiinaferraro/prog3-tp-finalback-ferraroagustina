@@ -79,18 +79,42 @@ app.use((err, req, res, next) => {
   });
 });
 
-// conecta a la base de datos y levanta servidor
+// conecta a la base de datos con cache para serverless
+let cached = global.mongoose;
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
 const connectDb = async () => {
-  try {
+  if (cached.conn) return cached.conn;
+  if (!cached.promise) {
     const mongoUri = `${process.env.DB_PROTOCOL}${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=app`;
-    await mongoose.connect(mongoUri);
-    console.log("Database connected");
-  } catch (err) {
-    console.error("Database not connected", err);
+    cached.promise = mongoose.connect(mongoUri).then((m) => {
+      console.log("Database connected");
+      return m;
+    }).catch((err) => {
+      console.error("Database not connected", err);
+      cached.promise = null;
+      throw err;
+    });
   }
+  cached.conn = await cached.promise;
+  return cached.conn;
 };
-connectDb();
+
+// middleware que asegura DB connection antes de rutas que la necesiten
+app.use(async (req, res, next) => {
+  if (req.path.startsWith("/img/") || req.path === "/") return next();
+  try {
+    await connectDb();
+    next();
+  } catch {
+    res.status(500).json({ message: "Error de conexión a la base de datos" });
+  }
+});
 
 app.listen(app.get("port"), () => {
   console.log(`Servidor corriendo en el puerto ${app.get("port")}`);
 });
+
+export default app;
