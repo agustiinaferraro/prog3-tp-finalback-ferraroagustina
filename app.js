@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import createError from "http-errors";
 import mongoose from "mongoose";
+import dns from "dns";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import fs from "fs";
@@ -88,17 +89,32 @@ if (!cached) {
 const connectDb = async () => {
   if (cached.conn) return cached.conn;
   if (!cached.promise) {
-    const mongoUri = `${process.env.DB_PROTOCOL}${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=app`;
-    console.log("Connecting to MongoDB...");
-    cached.promise = mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 15000,
-      connectTimeoutMS: 15000,
+    // intenta SRV primero, fallback a directo
+    const srvUri = `${process.env.DB_PROTOCOL}${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=app`;
+    const directNodes = [
+      "ac-culjato-shard-00-00.u3h8tkc.mongodb.net:27017",
+      "ac-culjato-shard-00-01.u3h8tkc.mongodb.net:27017",
+      "ac-culjato-shard-00-02.u3h8tkc.mongodb.net:27017",
+    ];
+    const directUri = `mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@${directNodes.join(",")}/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=app`;
+
+    console.log("Connecting to MongoDB (SRV)...");
+    cached.promise = mongoose.connect(srvUri, {
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+    }).catch((err) => {
+      console.error("SRV failed:", err.message, "- trying direct...");
+      cached.promise = null;
+      return mongoose.connect(directUri, {
+        serverSelectionTimeoutMS: 15000,
+        connectTimeoutMS: 15000,
+      });
     }).then((m) => {
       cached.conn = m;
       console.log("Database connected");
       return m;
     }).catch((err) => {
-      console.error("Database not connected:", err.message);
+      console.error("Database not connected (both methods):", err.message);
       cached.promise = null;
       throw err;
     });
